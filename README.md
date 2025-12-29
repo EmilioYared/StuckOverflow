@@ -1,2 +1,3 @@
-# StuckOverflow
-A flutter mongodb project
+# flutter_application_1
+
+A new Flutter project.
