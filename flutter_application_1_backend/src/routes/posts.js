@@ -60,5 +60,43 @@ router.post('/:postId/vote', auth, async (req, res) => {
   }
 });
 
+// Delete a post (with cascading deletes)
+router.delete("/:postId", auth, async (req, res) => {
+  try {
+    const Answer = require("../models/Answer");
+    const Comment = require("../models/Comment");
+
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if user is the author
+    if (post.author.toString() !== req.userId) {
+      return res.status(403).json({ message: "Not authorized to delete this post" });
+    }
+
+    // Find all answers to this post
+    const answers = await Answer.find({ post: req.params.postId });
+    const answerIds = answers.map(a => a._id);
+
+    // Delete all comments on those answers
+    await Comment.deleteMany({ answer: { $in: answerIds } });
+
+    // Delete all comments on the post itself
+    await Comment.deleteMany({ post: req.params.postId });
+
+    // Delete all answers
+    await Answer.deleteMany({ post: req.params.postId });
+
+    // Delete the post
+    await Post.findByIdAndDelete(req.params.postId);
+
+    res.json({ message: "Post and all related content deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
 

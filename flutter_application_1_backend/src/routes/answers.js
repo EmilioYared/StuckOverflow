@@ -107,4 +107,31 @@ router.post("/:answerId/accept", auth, async (req, res) => {
   }
 });
 
+// Delete an answer (with cascading deletes)
+router.delete("/:answerId", auth, async (req, res) => {
+  try {
+    const Comment = require("../models/Comment");
+
+    const answer = await Answer.findById(req.params.answerId);
+    if (!answer) {
+      return res.status(404).json({ message: "Answer not found" });
+    }
+
+    // Check if user is the author
+    if (answer.author.toString() !== req.userId) {
+      return res.status(403).json({ message: "Not authorized to delete this answer" });
+    }
+
+    // Delete all comments on this answer
+    await Comment.deleteMany({ answer: req.params.answerId });
+
+    // Delete the answer
+    await Answer.findByIdAndDelete(req.params.answerId);
+
+    res.json({ message: "Answer and all related comments deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

@@ -128,8 +128,8 @@ class _PostsScreenState extends State<PostsScreen> {
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                           child: InkWell(
-                            onTap: () {
-                              Navigator.push(
+                            onTap: () async {
+                              final needsRefresh = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => PostDetailScreen(
@@ -138,6 +138,10 @@ class _PostsScreenState extends State<PostsScreen> {
                                   ),
                                 ),
                               );
+                              // Refresh if post was deleted or modified
+                              if (needsRefresh == true) {
+                                _loadPosts();
+                              }
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),

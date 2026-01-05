@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../models/post.dart';
 import '../models/answer.dart';
+import '../models/comment.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final Post post;
@@ -20,20 +21,32 @@ class PostDetailScreen extends StatefulWidget {
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
   List<Answer> _answers = [];
+  List<Comment> _postComments = [];
+  Map<String, List<Comment>> _answerComments = {};
   bool _isLoading = true;
   final _answerController = TextEditingController();
+  final _commentController = TextEditingController();
   bool _isSubmitting = false;
+  String? _commentingOn; // 'post' or answerId
 
   @override
   void initState() {
     super.initState();
-    _loadAnswers();
+    _loadData();
   }
 
   @override
   void dispose() {
     _answerController.dispose();
+    _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadAnswers(),
+      _loadPostComments(),
+    ]);
   }
 
   Future<void> _loadAnswers() async {
@@ -45,8 +58,30 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       _isLoading = false;
       if (result['success']) {
         _answers = result['data'] as List<Answer>;
+        // Load comments for each answer
+        for (var answer in _answers) {
+          _loadAnswerComments(answer.id);
+        }
       }
     });
+  }
+
+  Future<void> _loadPostComments() async {
+    final result = await widget.apiService.getCommentsForPost(widget.post.id);
+    if (result['success']) {
+      setState(() {
+        _postComments = result['data'] as List<Comment>;
+      });
+    }
+  }
+
+  Future<void> _loadAnswerComments(String answerId) async {
+    final result = await widget.apiService.getCommentsForAnswer(answerId);
+    if (result['success']) {
+      setState(() {
+        _answerComments[answerId] = result['data'] as List<Comment>;
+      });
+    }
   }
 
   Future<void> _submitAnswer() async {
@@ -86,6 +121,59 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
+  Future<void> _submitComment() async {
+    if (_commentController.text.trim().isEmpty) {
+      return;
+    }
+
+    if (!widget.apiService.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to comment')),
+      );
+      return;
+    }
+
+    final result = await widget.apiService.createComment(
+      content: _commentController.text.trim(),
+      type: _commentingOn == 'post' ? 'question' : 'answer',
+      postId: _commentingOn == 'post' ? widget.post.id : null,
+      answerId: _commentingOn != 'post' ? _commentingOn : null,
+    );
+
+    if (result['success']) {
+      _commentController.clear();
+      final target = _commentingOn;
+      setState(() => _commentingOn = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Comment added!')),
+      );
+      
+      if (target == 'post') {
+        _loadPostComments();
+      } else if (target != null) {
+        _loadAnswerComments(target);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${result['message']}')),
+      );
+    }
+  }
+
+  void _showCommentInput(String target) {
+    setState(() {
+      _commentingOn = target;
+      _commentController.clear();
+    });
+  }
+
+  void _cancelComment() {
+    setState(() {
+      _commentingOn = null;
+      _commentController.clear();
+    });
+  }
+
   Future<void> _upvoteAnswer(String answerId) async {
     if (!widget.apiService.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,6 +202,105 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
+  Future<void> _deletePost() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text(
+          'Are you sure? This will delete the post, all answers, and all comments.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final result = await widget.apiService.deletePost(widget.post.id);
+    if (result['success']) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post deleted successfully')),
+        );
+        Navigator.pop(context, true); // Return true to trigger refresh
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${result['message']}')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAnswer(String answerId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Answer'),
+        content: const Text(
+          'Are you sure? This will also delete all comments on this answer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final result = await widget.apiService.deleteAnswer(answerId);
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Answer deleted successfully')),
+      );
+      _loadAnswers();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${result['message']}')),
+      );
+    }
+  }
+
+  Future<void> _deleteComment(String commentId, {bool isPostComment = false}) async {
+    final result = await widget.apiService.deleteComment(commentId);
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Comment deleted')),
+      );
+      if (isPostComment) {
+        _loadPostComments();
+      } else {
+        // Reload all answer comments
+        for (var answer in _answers) {
+          _loadAnswerComments(answer.id);
+        }
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${result['message']}')),
+      );
+    }
+  }
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -131,9 +318,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isPostAuthor = widget.apiService.currentUserId == widget.post.authorId;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Question Details'),
+        actions: [
+          if (isPostAuthor)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () => _deletePost(),
+              tooltip: 'Delete Post',
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -262,6 +459,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     ),
                   ),
 
+                  // Post Comments Section
+                  if (_postComments.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ..._postComments.map((comment) => _buildCommentWidget(comment)),
+                        ],
+                      ),
+                    ),
+                  
+                  // Add Comment Button for Post
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextButton.icon(
+                      onPressed: () => _showCommentInput('post'),
+                      icon: const Icon(Icons.comment, size: 16),
+                      label: const Text('Add comment'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
                   // Answers Header
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -376,14 +599,49 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                               ),
                                             ],
                                           ),
-                                          Text(
-                                            _formatDate(answer.createdAt),
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey,
-                                            ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                _formatDate(answer.createdAt),
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                              if (widget.apiService.currentUserId == answer.authorId)
+                                                IconButton(
+                                                  icon: const Icon(Icons.delete, size: 16),
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: const BoxConstraints(),
+                                                  color: Colors.red,
+                                                  onPressed: () => _deleteAnswer(answer.id),
+                                                  tooltip: 'Delete Answer',
+                                                ),
+                                            ],
                                           ),
                                         ],
+                                      ),
+                                      
+                                      // Answer Comments
+                                      if (_answerComments[answer.id]?.isNotEmpty ?? false)
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 8),
+                                            ..._answerComments[answer.id]!.map((comment) => 
+                                              _buildCommentWidget(comment, isAnswerComment: true)),
+                                          ],
+                                        ),
+                                      
+                                      // Add Comment Button for Answer
+                                      TextButton.icon(
+                                        onPressed: () => _showCommentInput(answer.id),
+                                        icon: const Icon(Icons.comment, size: 14),
+                                        label: const Text('Add comment'),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          textStyle: const TextStyle(fontSize: 12),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -399,6 +657,72 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ),
+
+          // Comment Input (shows when _commentingOn is set)
+          if (_commentingOn != null)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                border: Border(top: BorderSide(color: Colors.blue.shade200)),
+              ),
+              padding: const EdgeInsets.all(12.0),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.comment, size: 16, color: Colors.blue.shade700),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Add comment to ${_commentingOn == "post" ? "question" : "answer"}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: _cancelComment,
+                          icon: const Icon(Icons.close, size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _commentController,
+                            decoration: const InputDecoration(
+                              hintText: 'Write a comment...',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            maxLines: 2,
+                            minLines: 1,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filled(
+                          onPressed: _submitComment,
+                          icon: const Icon(Icons.send, size: 20),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // Answer Input
           Container(
@@ -450,6 +774,123 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommentWidget(Comment comment, {bool isAnswerComment = false}) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        vertical: isAnswerComment ? 4 : 6,
+        horizontal: isAnswerComment ? 8 : 0,
+      ),
+      margin: EdgeInsets.only(bottom: isAnswerComment ? 2 : 4, left: isAnswerComment ? 16 : 0),
+      decoration: BoxDecoration(
+        color: isAnswerComment ? Colors.grey.shade50 : null,
+        borderRadius: isAnswerComment ? BorderRadius.circular(4) : null,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Score
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              children: [
+                InkWell(
+                  onTap: () async {
+                    if (widget.apiService.isAuthenticated) {
+                      await widget.apiService.upvoteComment(comment.id);
+                      if (_commentingOn == 'post') {
+                        _loadPostComments();
+                      } else if (_commentingOn != null) {
+                        _loadAnswerComments(_commentingOn!);
+                      }
+                    }
+                  },
+                  child: Icon(Icons.arrow_upward, size: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${comment.score}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: isAnswerComment ? 12 : 13,
+                      color: Colors.black87,
+                    ),
+                    children: [
+                      TextSpan(text: comment.content),
+                      const TextSpan(text: ' – '),
+                      TextSpan(
+                        text: comment.authorName,
+                        style: TextStyle(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (comment.authorReputation > 0)
+                        TextSpan(
+                          text: ' (${comment.authorReputation})',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      TextSpan(
+                        text: ' ${_formatDate(comment.createdAt)}',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                        ),
+                      ),
+                      if (comment.isEdited)
+                        TextSpan(
+                          text: ' (edited)',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 10,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Delete button for comment author
+          if (widget.apiService.currentUserId == comment.authorId)
+            InkWell(
+              onTap: () => _deleteComment(
+                comment.id,
+                isPostComment: !isAnswerComment,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close,
+                  size: 14,
+                  color: Colors.red.shade400,
+                ),
+              ),
+            ),
         ],
       ),
     );

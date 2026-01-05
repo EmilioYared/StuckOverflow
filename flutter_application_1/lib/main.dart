@@ -11,7 +11,7 @@ class StackOverflowApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Stack Overflow Clone',
+      title: 'StuckOverflow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

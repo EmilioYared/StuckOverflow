@@ -19,4 +19,7 @@ app.use("/api/auth", authRoutes);
 const answerRoutes = require("./routes/answers");
 app.use("/api/answers", answerRoutes);
 
+const commentRoutes = require("./routes/comments");
+app.use("/api/comments", commentRoutes);
+
 module.exports = app;

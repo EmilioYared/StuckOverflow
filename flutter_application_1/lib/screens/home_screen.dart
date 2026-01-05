@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import 'auth_screen.dart';
 import 'posts_screen.dart';
 import 'create_post_screen.dart';
+import 'stats_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,6 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         return CreatePostScreen(apiService: _apiService);
       case 2:
+        return StatsScreen(apiService: _apiService);
+      case 3:
         return AuthScreen(apiService: _apiService);
       default:
         return PostsScreen(apiService: _apiService);
@@ -53,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stack Overflow Clone'),
+        title: const Text('StuckOverflow'),
         actions: [
           if (_isLoading)
             const Padding(
@@ -103,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onNavTap,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -111,6 +115,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle),
             label: 'Create',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: 'Stats',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

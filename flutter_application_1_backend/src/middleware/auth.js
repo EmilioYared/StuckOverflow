@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 
 module.exports = function (req, res, next) {
+  console.log("Auth middleware called, next type:", typeof next);
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
@@ -12,6 +13,6 @@ module.exports = function (req, res, next) {
     req.userId = decoded.userId;
     next();
   } catch {
-    res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token" });
   }
 };

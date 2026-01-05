@@ -74,4 +74,13 @@ class Post {
     }
     return 'Unknown';
   }
+
+  String? get authorId {
+    if (author is String) {
+      return author;
+    } else if (author is Map && author['_id'] != null) {
+      return author['_id'];
+    }
+    return null;
+  }
 }
