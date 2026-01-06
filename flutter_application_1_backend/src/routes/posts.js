@@ -4,7 +4,6 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 
-// Create a new post
 router.post("/", auth, async (req, res) => {
   try {
     const post = await Post.create({
@@ -17,7 +16,6 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// Get all posts
 router.get("/", async (req, res) => {
   try {
     const posts = await Post.find()
@@ -30,7 +28,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Voting route
 router.post('/:postId/vote', auth, async (req, res) => {
   const { postId } = req.params;
   const { vote } = req.body; // vote = 1 or -1
@@ -60,7 +57,6 @@ router.post('/:postId/vote', auth, async (req, res) => {
   }
 });
 
-// Delete a post (with cascading deletes)
 router.delete("/:postId", auth, async (req, res) => {
   try {
     const Answer = require("../models/Answer");
@@ -71,7 +67,6 @@ router.delete("/:postId", auth, async (req, res) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // Check if user is the author
     if (post.author.toString() !== req.userId) {
       return res.status(403).json({ message: "Not authorized to delete this post" });
     }

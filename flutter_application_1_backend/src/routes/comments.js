@@ -4,7 +4,6 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 
-// CREATE - Insert a new comment
 router.post("/", auth, async (req, res) => {
   try {
     console.log("Creating comment with data:", req.body);
@@ -26,7 +25,6 @@ router.post("/", auth, async (req, res) => {
 
     console.log("Comment created:", comment._id);
 
-    // Populate author information before returning
     await comment.populate("author", "username reputation");
 
     console.log("Comment populated, sending response");
@@ -37,7 +35,6 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// READ - Display all comments (Criteria: ALL)
 router.get("/", async (req, res) => {
   try {
     const comments = await Comment.find()
@@ -52,7 +49,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// READ - Display comments by POST ID (Criteria 1: by Post)
 router.get("/post/:postId", async (req, res) => {
   try {
     const comments = await Comment.find({ post: req.params.postId })
@@ -65,7 +61,6 @@ router.get("/post/:postId", async (req, res) => {
   }
 });
 
-// READ - Display comments by ANSWER ID (Criteria 2: by Answer)
 router.get("/answer/:answerId", async (req, res) => {
   try {
     const comments = await Comment.find({ answer: req.params.answerId })
@@ -78,7 +73,6 @@ router.get("/answer/:answerId", async (req, res) => {
   }
 });
 
-// READ - Display comments by AUTHOR (Additional Criteria 3: by Author)
 router.get("/author/:authorId", async (req, res) => {
   try {
     const comments = await Comment.find({ author: req.params.authorId })
@@ -92,11 +86,9 @@ router.get("/author/:authorId", async (req, res) => {
   }
 });
 
-// AGGREGATE - Get comment statistics with JOIN data
 router.get("/stats/aggregate", async (req, res) => {
   try {
     const stats = await Comment.aggregate([
-      // Stage 1: Lookup (JOIN) with User collection
       {
         $lookup: {
           from: "users",
@@ -105,11 +97,9 @@ router.get("/stats/aggregate", async (req, res) => {
           as: "authorDetails"
         }
       },
-      // Stage 2: Unwind the author array
       {
         $unwind: "$authorDetails"
       },
-      // Stage 3: Group by author and calculate statistics
       {
         $group: {
           _id: "$author",
@@ -121,11 +111,9 @@ router.get("/stats/aggregate", async (req, res) => {
           lastCommentDate: { $max: "$createdAt" }
         }
       },
-      // Stage 4: Sort by total comments descending
       {
         $sort: { totalComments: -1 }
       },
-      // Stage 5: Limit to top 10 commenters
       {
         $limit: 10
       }
@@ -137,11 +125,9 @@ router.get("/stats/aggregate", async (req, res) => {
   }
 });
 
-// AGGREGATE - Get comments with post and answer details using JOIN
 router.get("/stats/detailed", async (req, res) => {
   try {
     const detailedComments = await Comment.aggregate([
-      // Lookup author
       {
         $lookup: {
           from: "users",
@@ -150,7 +136,6 @@ router.get("/stats/detailed", async (req, res) => {
           as: "authorInfo"
         }
       },
-      // Lookup post
       {
         $lookup: {
           from: "posts",
@@ -159,7 +144,6 @@ router.get("/stats/detailed", async (req, res) => {
           as: "postInfo"
         }
       },
-      // Lookup answer
       {
         $lookup: {
           from: "answers",
@@ -168,7 +152,6 @@ router.get("/stats/detailed", async (req, res) => {
           as: "answerInfo"
         }
       },
-      // Unwind arrays
       {
         $unwind: {
           path: "$authorInfo",
@@ -187,7 +170,6 @@ router.get("/stats/detailed", async (req, res) => {
           preserveNullAndEmptyArrays: true
         }
       },
-      // Project only needed fields
       {
         $project: {
           content: 1,
@@ -200,11 +182,9 @@ router.get("/stats/detailed", async (req, res) => {
           "answerInfo.body": 1
         }
       },
-      // Sort by date
       {
         $sort: { createdAt: -1 }
       },
-      // Limit results
       {
         $limit: 20
       }
@@ -216,7 +196,6 @@ router.get("/stats/detailed", async (req, res) => {
   }
 });
 
-// UPDATE - Update a comment
 router.put("/:commentId", auth, async (req, res) => {
   try {
     const comment = await Comment.findById(req.params.commentId);
@@ -225,20 +204,16 @@ router.put("/:commentId", auth, async (req, res) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    // Check if user is the author
     if (comment.author.toString() !== req.userId) {
       return res.status(403).json({ message: "Not authorized to update this comment" });
     }
 
-    // Store old content in edit history
     const oldContent = comment.content;
     
-    // Update fields
     if (req.body.content) {
       comment.content = req.body.content;
       comment.isEdited = true;
       
-      // Update metadata with edit history
       if (!comment.metadata.editHistory) {
         comment.metadata.editHistory = [];
       }
@@ -265,7 +240,6 @@ router.put("/:commentId", auth, async (req, res) => {
   }
 });
 
-// UPDATE - Increment score (like/upvote a comment)
 router.post("/:commentId/upvote", auth, async (req, res) => {
   try {
     const comment = await Comment.findById(req.params.commentId);
@@ -283,7 +257,6 @@ router.post("/:commentId/upvote", auth, async (req, res) => {
   }
 });
 
-// DELETE - Delete a comment
 router.delete("/:commentId", auth, async (req, res) => {
   try {
     const comment = await Comment.findById(req.params.commentId);
@@ -292,7 +265,6 @@ router.delete("/:commentId", auth, async (req, res) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    // Check if user is the author
     if (comment.author.toString() !== req.userId) {
       return res.status(403).json({ message: "Not authorized to delete this comment" });
     }

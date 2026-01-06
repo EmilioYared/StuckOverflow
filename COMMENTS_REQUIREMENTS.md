@@ -1,22 +1,22 @@
 # Comments System - MongoDB Requirements Documentation
 
-## Schema Requirements ✅
+## Schema Requirements
 
 ### 1. Field Types
-- ✅ **String**: `content`, `status`, `type`
-- ✅ **Integer/Number**: `score` (with max validation)
-- ✅ **Date**: `createdAt`, `updatedAt` (via timestamps)
-- ✅ **Boolean**: `isEdited`
-- ✅ **Array**: `mentions` (array of strings)
-- ✅ **JSON/Object**: `metadata` (nested object with editHistory)
-- ✅ **Foreign Keys**: `author` (User), `post` (Post), `answer` (Answer)
+- **String**: `content`, `status`, `type`
+- **Integer/Number**: `score` (with max validation)
+- **Date**: `createdAt`, `updatedAt` (via timestamps)
+- **Boolean**: `isEdited`
+- **Array**: `mentions` (array of strings)
+- **JSON/Object**: `metadata` (nested object with editHistory)
+- **Foreign Keys**: `author` (User), `post` (Post), `answer` (Answer)
 
 ### 2. String Constraints
 #### First String Field (status):
 ```javascript
 status: {
   type: String,
-  lowercase: true,  // ✅ LOWERCASE constraint
+  lowercase: true,
   default: "approved"
 }
 ```
@@ -25,7 +25,7 @@ status: {
 ```javascript
 type: {
   type: String,
-  enum: {  // ✅ ENUM constraint with list of values
+  enum: {
     values: ["question", "answer", "general"],
     message: "{VALUE} is not a valid comment type"
   },
@@ -39,7 +39,7 @@ type: {
 score: {
   type: Number,
   default: 0,
-  max: [1000, "Score cannot exceed 1000"],  // ✅ MAX VALUE constraint
+  max: [1000, "Score cannot exceed 1000"],
   min: 0
 }
 ```
@@ -49,12 +49,11 @@ score: {
 content: {
   type: String,
   required: true,
-  minlength: [3, "Comment must be at least 3 characters long"],  // ✅ VALIDATION RULE
+  minlength: [3, "Comment must be at least 3 characters long"],
   maxlength: 500,
   trim: true
 }
 
-// Additional custom validation (pre-save hook)
 CommentSchema.pre("save", function(next) {
   if (!this.post && !this.answer) {
     next(new Error("Comment must be associated with either a post or an answer"));
@@ -62,7 +61,7 @@ CommentSchema.pre("save", function(next) {
 });
 ```
 
-## CRUD Operations ✅
+## CRUD Operations
 
 ### CREATE - Insert Record
 ```javascript
@@ -110,20 +109,20 @@ Body: {
 // Tracks edit history in metadata.editHistory
 ```
 
-## Populate (JOIN) ✅
+## Populate (JOIN)
 
 ### Basic Populate Example
 ```javascript
 const comments = await Comment.find({ post: postId })
-  .populate("author", "username reputation")  // ✅ POPULATE author from User collection
-  .populate("post", "title")                   // ✅ POPULATE post from Post collection
-  .populate("answer", "body")                  // ✅ POPULATE answer from Answer collection
+  .populate("author", "username reputation")
+  .populate("post", "title")
+  .populate("answer", "body")
   .sort({ createdAt: -1 });
 ```
 
 **Endpoint**: `GET /api/comments/post/:postId`
 
-## Aggregate (JOIN) ✅
+## Aggregate (JOIN)
 
 ### Aggregate Example 1: User Comment Statistics
 ```javascript
@@ -237,35 +236,35 @@ Authorization: Bearer YOUR_TOKEN
 
 ## Summary of Requirements Met
 
-✅ **Schema with all field types**: String, Integer, Date, Boolean, Array, JSON  
-✅ **Foreign keys**: author, post, answer  
-✅ **String constraints**: lowercase (status), enum (type)  
-✅ **Number constraint**: max value (score)  
-✅ **Validation rule**: minlength on content  
-✅ **Display criteria**: ALL, by Post, by Answer, by Author  
-✅ **Populate**: Fetches related User, Post, Answer data  
-✅ **Aggregate**: Two examples with $lookup (JOIN), $group, $sort  
-✅ **CRUD operations**: Create, Read, Update, Delete  
+**Schema with all field types**: String, Integer, Date, Boolean, Array, JSON  
+**Foreign keys**: author, post, answer  
+**String constraints**: lowercase (status), enum (type)  
+**Number constraint**: max value (score)  
+**Validation rule**: minlength on content  
+**Display criteria**: ALL, by Post, by Answer, by Author  
+**Populate**: Fetches related User, Post, Answer data  
+**Aggregate**: Two examples with $lookup (JOIN), $group, $sort  
+**CRUD operations**: Create, Read, Update, Delete  
 
 ## Database Schema Visualization
 
 ```
 Comment Collection
 ├── _id: ObjectId
-├── content: String (min 3, max 500) ✅ Validation
-├── status: String (lowercase) ✅ Lowercase constraint
-├── type: String (enum: question/answer/general) ✅ Enum constraint
-├── score: Number (max 1000) ✅ Max value constraint
+├── content: String (min 3, max 500) Validation
+├── status: String (lowercase) Lowercase constraint
+├── type: String (enum: question/answer/general) Enum constraint
+├── score: Number (max 1000) Max value constraint
 ├── isEdited: Boolean
-├── mentions: [String] ✅ Array
-├── metadata: Object ✅ JSON/Object
+├── mentions: [String] Array
+├── metadata: Object JSON/Object
 │   ├── editHistory: Array
 │   ├── ipAddress: String
 │   ├── userAgent: String
 │   └── flags: Number
-├── author: ObjectId → User ✅ Foreign Key
-├── post: ObjectId → Post ✅ Foreign Key
-├── answer: ObjectId → Answer ✅ Foreign Key
-├── createdAt: Date ✅ Auto-generated
-└── updatedAt: Date ✅ Auto-generated
+├── author: ObjectId → User Foreign Key
+├── post: ObjectId → Post Foreign Key
+├── answer: ObjectId → Answer Foreign Key
+├── createdAt: Date Auto-generated
+└── updatedAt: Date Auto-generated
 ```

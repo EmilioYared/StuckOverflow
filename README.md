@@ -4,13 +4,13 @@ A full-stack Stack Overflow clone built with Flutter (frontend) and Node.js/Mong
 
 ## Features
 
-- ✅ User authentication (register/login with JWT)
-- ✅ Create questions with tags
-- ✅ Answer questions
-- ✅ Upvote/downvote questions and answers
-- ✅ Real-time vote counting
-- ✅ User reputation system
-- ✅ Responsive UI with Stack Overflow theme
+- User authentication (register/login with JWT)
+- Create questions with tags
+- Answer questions
+- Upvote/downvote questions and answers
+- Real-time vote counting
+- User reputation system
+- Responsive UI with Stack Overflow theme
 
 ## Tech Stack
 
