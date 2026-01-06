@@ -103,15 +103,12 @@ router.post("/:answerId/downvote", auth, async (req, res) => {
     const existingVoteIndex = answer.votes.findIndex(v => v.user.toString() === userId);
 
     if (existingVoteIndex !== -1) {
-      // If already downvoted, remove the vote (toggle off)
       if (answer.votes[existingVoteIndex].vote === -1) {
         answer.votes.splice(existingVoteIndex, 1);
       } else {
-        // If upvoted, change to downvote
         answer.votes[existingVoteIndex].vote = -1;
       }
     } else {
-      // Add new downvote
       answer.votes.push({ user: userId, vote: -1 });
     }
 

@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const CommentSchema = new mongoose.Schema(
   {
-    // String field with validation rule (minlength)
     content: {
       type: String,
       required: true,
@@ -11,14 +10,12 @@ const CommentSchema = new mongoose.Schema(
       trim: true
     },
     
-    // String field with lowercase constraint
     status: {
       type: String,
       lowercase: true,
       default: "approved"
     },
     
-    // String field with enum constraint
     type: {
       type: String,
       enum: {
@@ -29,7 +26,6 @@ const CommentSchema = new mongoose.Schema(
       default: "general"
     },
     
-    // Votes array (like Posts/Answers)
     votes: [
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -37,7 +33,6 @@ const CommentSchema = new mongoose.Schema(
       }
     ],
     
-    // Number field with maximum value (kept for backward compatibility)
     score: {
       type: Number,
       default: 0,
@@ -45,19 +40,16 @@ const CommentSchema = new mongoose.Schema(
       min: 0
     },
     
-    // Boolean field
     isEdited: {
       type: Boolean,
       default: false
     },
     
-    // Array field
     mentions: {
       type: [String],
       default: []
     },
     
-    // JSON-like field (Object/Mixed type)
     metadata: {
       type: {
         editHistory: [{
@@ -78,20 +70,18 @@ const CommentSchema = new mongoose.Schema(
       required: true
     },
     
-    // Foreign Key to Post collection (optional - either post or answer)
     post: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Post"
     },
     
-    // Foreign Key to Answer collection (optional - either post or answer)
     answer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Answer"
     }
   },
   { 
-    timestamps: true // Automatically adds createdAt and updatedAt Date fields
+    timestamps: true
   }
 );
 

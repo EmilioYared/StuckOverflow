@@ -1,7 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
@@ -14,18 +13,15 @@ mongoose.connect(process.env.MONGO_URI)
 
 async function migrateVotes() {
   try {
-    // Use raw MongoDB operations
     const db = mongoose.connection.db;
     const answersCollection = db.collection('answers');
     
-    // Find all answers
     const allAnswers = await answersCollection.find({}).toArray();
     
     console.log(`Found ${allAnswers.length} total answers`);
     
     let migratedCount = 0;
     
-    // Check each answer
     for (const answer of allAnswers) {
       console.log(`\nAnswer ${answer._id}:`);
       console.log(`  votes type: ${typeof answer.votes}`);

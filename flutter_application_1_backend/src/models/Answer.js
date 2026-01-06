@@ -16,7 +16,6 @@ const AnswerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Virtual field for vote counts
 AnswerSchema.virtual('voteCount').get(function() {
   return this.votes.reduce((sum, v) => sum + v.vote, 0);
 });
