@@ -26,7 +26,7 @@ class Post {
   final String id;
   final String title;
   final String content;
-  final dynamic author; // Can be String (ID) or Map (populated User)
+  final dynamic author;
   final List<String> tags;
   final List<Vote> votes;
   final DateTime createdAt;

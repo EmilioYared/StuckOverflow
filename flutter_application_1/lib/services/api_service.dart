@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/user.dart';
 import '../models/post.dart';
 import '../models/answer.dart';
 import '../models/comment.dart';
@@ -8,7 +7,6 @@ import '../models/comment.dart';
 export '../models/answer.dart';
 
 class ApiService {
-  // Change this to your backend URL
   static const String baseUrl = 'http://localhost:5000/api';
   
   String? _token;
@@ -16,7 +14,6 @@ class ApiService {
 
   String? get currentUserId => _userId;
 
-  // Auth Methods
   Future<Map<String, dynamic>> register(String username, String email, String password) async {
     try {
       final response = await http.post(
@@ -66,7 +63,6 @@ class ApiService {
     }
   }
 
-  // Post Methods
   Future<Map<String, dynamic>> createPost(String title, String content, List<String> tags) async {
     try {
       if (_token == null) {
@@ -142,7 +138,6 @@ class ApiService {
     }
   }
 
-  // Test connection
   Future<bool> testConnection() async {
     try {
       final response = await http.get(Uri.parse(baseUrl.replaceAll('/api', '')));
@@ -152,7 +147,6 @@ class ApiService {
     }
   }
 
-  // Answer Methods
   Future<Map<String, dynamic>> getAnswers(String postId) async {
     try {
       final response = await http.get(
@@ -277,7 +271,6 @@ class ApiService {
     }
   }
 
-  // Comment Methods
   Future<Map<String, dynamic>> getCommentsForPost(String postId) async {
     try {
       final response = await http.get(
@@ -405,7 +398,6 @@ class ApiService {
     }
   }
 
-  // Delete Post
   Future<Map<String, dynamic>> deletePost(String postId) async {
     try {
       if (_token == null) {
@@ -431,7 +423,6 @@ class ApiService {
     }
   }
 
-  // Delete Answer
   Future<Map<String, dynamic>> deleteAnswer(String answerId) async {
     try {
       if (_token == null) {

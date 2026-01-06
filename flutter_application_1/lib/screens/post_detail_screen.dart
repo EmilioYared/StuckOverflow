@@ -28,7 +28,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   final _commentController = TextEditingController();
   final _editAnswerController = TextEditingController();
   bool _isSubmitting = false;
-  String? _commentingOn; // 'post' or answerId
+  String? _commentingOn;
   String? _editingAnswerId;
 
   @override
@@ -61,7 +61,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       _isLoading = false;
       if (result['success']) {
         _answers = result['data'] as List<Answer>;
-        // Load comments for each answer
         for (var answer in _answers) {
           _loadAnswerComments(answer.id);
         }
@@ -235,7 +234,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Post deleted successfully')),
         );
-        Navigator.pop(context, true); // Return true to trigger refresh
+        Navigator.pop(context, true);
       }
     } else {
       if (mounted) {
@@ -292,7 +291,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (isPostComment) {
         _loadPostComments();
       } else {
-        // Reload all answer comments
         for (var answer in _answers) {
           _loadAnswerComments(answer.id);
         }

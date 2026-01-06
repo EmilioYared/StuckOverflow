@@ -56,7 +56,7 @@ class _PostsScreenState extends State<PostsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vote recorded!')),
       );
-      _loadPosts(); // Refresh posts
+      _loadPosts();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${result['message']}')),
@@ -138,7 +138,6 @@ class _PostsScreenState extends State<PostsScreen> {
                                   ),
                                 ),
                               );
-                              // Refresh if post was deleted or modified
                               if (needsRefresh == true) {
                                 _loadPosts();
                               }

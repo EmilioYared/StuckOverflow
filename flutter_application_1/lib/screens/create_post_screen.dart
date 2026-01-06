@@ -33,7 +33,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     if (!widget.apiService.isAuthenticated) {
       setState(() {
-        _message = '❌ Please login first to create a post';
+        _message = 'Please login first to create a post';
         _messageColor = Colors.red;
       });
       return;
@@ -44,7 +44,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _message = null;
     });
 
-    // Parse tags from comma-separated string
     final tags = _tagsController.text
         .split(',')
         .map((tag) => tag.trim())
@@ -60,8 +59,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     setState(() {
       _isLoading = false;
       _message = result['success']
-          ? '✅ Post created successfully!'
-          : '❌ ${result['message']}';
+          ? 'Post created successfully!'
+          : '${result['message']}';
       _messageColor = result['success'] ? Colors.green : Colors.red;
     });
 
@@ -70,7 +69,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _contentController.clear();
       _tagsController.clear();
       
-      // Show success for 2 seconds
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
           setState(() => _message = null);

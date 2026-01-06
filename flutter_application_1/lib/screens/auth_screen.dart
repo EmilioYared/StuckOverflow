@@ -55,8 +55,8 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _isLoading = false;
       _message = result['success'] 
-          ? '✅ ${_isLogin ? "Login" : "Registration"} successful!'
-          : '❌ ${result['message']}';
+          ? '${_isLogin ? "Login" : "Registration"} successful!'
+          : '${result['message']}';
       _messageColor = result['success'] ? Colors.green : Colors.red;
     });
 
