@@ -248,10 +248,22 @@ router.post("/:commentId/upvote", auth, async (req, res) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    comment.score += 1;
+    const userId = req.userId;
+    const existingVoteIndex = comment.votes.findIndex(v => v.user.toString() === userId);
+
+    if (existingVoteIndex !== -1) {
+      // If already upvoted, remove the vote (toggle off)
+      comment.votes.splice(existingVoteIndex, 1);
+    } else {
+      // Add new upvote
+      comment.votes.push({ user: userId, vote: 1 });
+    }
+
+    // Update score to match vote count
+    comment.score = comment.votes.length;
     await comment.save();
 
-    res.json({ message: "Comment upvoted", score: comment.score });
+    res.json({ message: "Vote updated", score: comment.score });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

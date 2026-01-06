@@ -29,7 +29,15 @@ const CommentSchema = new mongoose.Schema(
       default: "general"
     },
     
-    // Number field with maximum value
+    // Votes array (like Posts/Answers)
+    votes: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        vote: { type: Number, enum: [1] } // Comments only support upvotes
+      }
+    ],
+    
+    // Number field with maximum value (kept for backward compatibility)
     score: {
       type: Number,
       default: 0,
@@ -86,6 +94,14 @@ const CommentSchema = new mongoose.Schema(
     timestamps: true // Automatically adds createdAt and updatedAt Date fields
   }
 );
+
+// Virtual field for vote count
+CommentSchema.virtual('voteCount').get(function() {
+  return this.votes.length;
+});
+
+CommentSchema.set('toJSON', { virtuals: true });
+CommentSchema.set('toObject', { virtuals: true });
 
 // Index for faster queries
 CommentSchema.index({ post: 1, createdAt: -1 });

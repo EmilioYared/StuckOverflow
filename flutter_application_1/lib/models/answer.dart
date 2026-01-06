@@ -25,7 +25,10 @@ class Answer {
       body: json['body'] ?? '',
       author: json['author'],
       post: json['post'] ?? '',
-      votes: Votes.fromJson(json['votes'] ?? {}),
+      votes: Votes(
+        upvotes: json['upvotes'] ?? 0,
+        downvotes: json['downvotes'] ?? 0,
+      ),
       isAccepted: json['isAccepted'] ?? false,
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),

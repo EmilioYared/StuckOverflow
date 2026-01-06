@@ -40,6 +40,28 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
+router.put("/:answerId", auth, async (req, res) => {
+  try {
+    const answer = await Answer.findById(req.params.answerId);
+    if (!answer) {
+      return res.status(404).json({ message: "Answer not found" });
+    }
+
+    // Check if the user is the author
+    if (answer.author.toString() !== req.userId) {
+      return res.status(403).json({ message: "Not authorized to edit this answer" });
+    }
+
+    answer.body = req.body.body;
+    await answer.save();
+    await answer.populate("author", "username reputation");
+
+    res.json(answer);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.post("/:answerId/upvote", auth, async (req, res) => {
   try {
     const answer = await Answer.findById(req.params.answerId);
@@ -47,10 +69,24 @@ router.post("/:answerId/upvote", auth, async (req, res) => {
       return res.status(404).json({ message: "Answer not found" });
     }
 
-    answer.votes.upvotes += 1;
-    await answer.save();
+    const userId = req.userId;
+    const existingVoteIndex = answer.votes.findIndex(v => v.user.toString() === userId);
 
-    res.json({ message: "Upvoted", votes: answer.votes });
+    if (existingVoteIndex !== -1) {
+      // If already upvoted, remove the vote (toggle off)
+      if (answer.votes[existingVoteIndex].vote === 1) {
+        answer.votes.splice(existingVoteIndex, 1);
+      } else {
+        // If downvoted, change to upvote
+        answer.votes[existingVoteIndex].vote = 1;
+      }
+    } else {
+      // Add new upvote
+      answer.votes.push({ user: userId, vote: 1 });
+    }
+
+    await answer.save();
+    res.json({ message: "Vote updated", votes: { upvotes: answer.upvotes, downvotes: answer.downvotes, total: answer.voteCount } });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -63,10 +99,24 @@ router.post("/:answerId/downvote", auth, async (req, res) => {
       return res.status(404).json({ message: "Answer not found" });
     }
 
-    answer.votes.downvotes += 1;
-    await answer.save();
+    const userId = req.userId;
+    const existingVoteIndex = answer.votes.findIndex(v => v.user.toString() === userId);
 
-    res.json({ message: "Downvoted", votes: answer.votes });
+    if (existingVoteIndex !== -1) {
+      // If already downvoted, remove the vote (toggle off)
+      if (answer.votes[existingVoteIndex].vote === -1) {
+        answer.votes.splice(existingVoteIndex, 1);
+      } else {
+        // If upvoted, change to downvote
+        answer.votes[existingVoteIndex].vote = -1;
+      }
+    } else {
+      // Add new downvote
+      answer.votes.push({ user: userId, vote: -1 });
+    }
+
+    await answer.save();
+    res.json({ message: "Vote updated", votes: { upvotes: answer.upvotes, downvotes: answer.downvotes, total: answer.voteCount } });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

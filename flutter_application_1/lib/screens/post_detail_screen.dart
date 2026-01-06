@@ -26,8 +26,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _isLoading = true;
   final _answerController = TextEditingController();
   final _commentController = TextEditingController();
+  final _editAnswerController = TextEditingController();
   bool _isSubmitting = false;
   String? _commentingOn; // 'post' or answerId
+  String? _editingAnswerId;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   void dispose() {
     _answerController.dispose();
     _commentController.dispose();
+    _editAnswerController.dispose();
     super.dispose();
   }
 
@@ -576,10 +579,69 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        answer.body,
-                                        style: const TextStyle(fontSize: 15),
-                                      ),
+                                      if (_editingAnswerId == answer.id)
+                                        Column(
+                                          children: [
+                                            TextField(
+                                              controller: _editAnswerController,
+                                              maxLines: 5,
+                                              decoration: const InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                hintText: 'Edit your answer...',
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _editingAnswerId = null;
+                                                      _editAnswerController.clear();
+                                                    });
+                                                  },
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                ElevatedButton(
+                                                  onPressed: () async {
+                                                    if (_editAnswerController.text.trim().isEmpty) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Answer cannot be empty')),
+                                                      );
+                                                      return;
+                                                    }
+                                                    final result = await widget.apiService.updateAnswer(
+                                                      answer.id,
+                                                      _editAnswerController.text.trim(),
+                                                    );
+                                                    if (result['success']) {
+                                                      setState(() {
+                                                        _editingAnswerId = null;
+                                                        _editAnswerController.clear();
+                                                      });
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Answer updated!')),
+                                                      );
+                                                      _loadAnswers();
+                                                    } else {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(content: Text('Error: ${result['message']}')),
+                                                      );
+                                                    }
+                                                  },
+                                                  child: const Text('Save'),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        Text(
+                                          answer.body,
+                                          style: const TextStyle(fontSize: 15),
+                                        ),
                                       const SizedBox(height: 12),
                                       Row(
                                         mainAxisAlignment:
@@ -608,7 +670,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                                   color: Colors.grey,
                                                 ),
                                               ),
-                                              if (widget.apiService.currentUserId == answer.authorId)
+                                              if (widget.apiService.currentUserId == answer.authorId && _editingAnswerId != answer.id)
+                                                IconButton(
+                                                  icon: const Icon(Icons.edit, size: 16),
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: const BoxConstraints(),
+                                                  color: Colors.blue,
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _editingAnswerId = answer.id;
+                                                      _editAnswerController.text = answer.body;
+                                                    });
+                                                  },
+                                                  tooltip: 'Edit Answer',
+                                                ),
+                                              if (widget.apiService.currentUserId == answer.authorId && _editingAnswerId != answer.id)
                                                 IconButton(
                                                   icon: const Icon(Icons.delete, size: 16),
                                                   padding: EdgeInsets.zero,
@@ -802,10 +878,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   onTap: () async {
                     if (widget.apiService.isAuthenticated) {
                       await widget.apiService.upvoteComment(comment.id);
-                      if (_commentingOn == 'post') {
-                        _loadPostComments();
-                      } else if (_commentingOn != null) {
-                        _loadAnswerComments(_commentingOn!);
+                      // Refresh the appropriate comments list
+                      if (isAnswerComment) {
+                        // Find which answer this comment belongs to
+                        for (var answer in _answers) {
+                          if (_answerComments[answer.id]?.any((c) => c.id == comment.id) ?? false) {
+                            await _loadAnswerComments(answer.id);
+                            break;
+                          }
+                        }
+                      } else {
+                        await _loadPostComments();
                       }
                     }
                   },

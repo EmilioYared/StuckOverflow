@@ -201,6 +201,32 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> updateAnswer(String answerId, String body) async {
+    try {
+      if (_token == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/answers/$answerId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({'body': body}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'message': jsonDecode(response.body)['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> upvoteAnswer(String answerId) async {
     try {
       if (_token == null) {
